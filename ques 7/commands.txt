@@ -1,0 +1,15 @@
+# Docker push to ECR commands
+
+docker build -t sample-app .
+
+az login
+
+az group create --name myResourceGroup --location eastus
+
+az acr create --resource-group myResourceGroup --name myacrregistry --sku Basic
+
+az acr login --name myacrregistry
+
+docker tag sample-app myacrregistry.azurecr.io/sample-app:latest
+
+docker push myacrregistry.azurecr.io/sample-app:latest

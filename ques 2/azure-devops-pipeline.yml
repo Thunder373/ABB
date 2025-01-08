@@ -1,0 +1,81 @@
+trigger:
+  branches:
+    include:
+      - main
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  buildConfiguration: 'Release'
+  sonarQubeProjectKey: 'mysonarproject'
+  sonarQubeProjectName: 'mysonarproject'
+  sonarQubeServiceConnection: 'sonarqube'
+
+steps:
+  - task: UseDotNet@2
+    inputs:
+      packageType: 'sdk'
+      version: '6.x'  
+      installationPath: $(Agent.ToolsDirectory)/dotnet
+
+  - script: |
+      cd ./server/AzureApp.Api/
+      dotnet build --configuration $(buildConfiguration)
+    displayName: 'Build .NET Project'
+
+  - task: DotNetCoreCLI@2
+    inputs:
+      command: 'test'
+      projects: '**/*Tests/*.csproj'
+      arguments: '--configuration $(buildConfiguration) --logger:trx'
+    displayName: 'Run .NET Unit Tests'
+
+  - task: NodeTool@0
+    inputs:
+      versionSpec: '16.x'  
+
+  - script: |
+      cd client/
+      npm install
+    displayName: 'Install Node.js Dependencies'
+
+  - script: |
+      cd client/
+      npm run build
+    displayName: 'Build Angular App'
+
+  - script: |
+      cd client/
+      npm run test:ci
+    displayName: 'Run Angular Unit Tests'
+
+  - task: PublishTestResults@2
+    inputs:
+      testResultsFormat: 'JUnit'
+      testResultsFiles: '**/TESTS-*.xml'
+    displayName: 'Publish Test Results'
+
+  - task: PublishPipelineArtifact@1
+    inputs:
+      artifactName: 'drop'
+      targetPath: '$(Build.ArtifactStagingDirectory)'
+      publishLocation: 'pipeline'
+    displayName: 'Publish Artifacts'
+
+  - task: SonarQubePrepare@4
+    inputs:
+      SonarQube: '$(sonarQubeServiceConnection)'
+      scannerMode: 'CLI'
+      configMode: 'manual'
+      cliProjectKey: '$(sonarQubeProjectKey)'
+      cliProjectName: '$(sonarQubeProjectName)'
+      cliSources: '$(Build.SourcesDirectory)'
+
+  - task: SonarQubeAnalyze@4
+    displayName: 'Run SonarQube Analysis'
+
+  - task: SonarQubePublish@4
+    inputs:
+      pollingTimeoutSec: '300'
+    displayName: 'Publish SonarQube Results'

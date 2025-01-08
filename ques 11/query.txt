@@ -1,0 +1,6 @@
+// Query to analyze application logs for error patterns over the last 24 hours
+AppLogs
+| where TimeGenerated >= ago(24h)  // Filter logs from the last 24 hours
+| where SeverityLevel == "Error"    // Filter for error logs
+| summarize Count = count() by ErrorMessage, bin(TimeGenerated, 1h)  // Group by error message and time
+| order by Count desc                 // Order by count of errors

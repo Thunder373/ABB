@@ -1,0 +1,4 @@
+apiVersion: v2
+name: sample-app
+description: A Helm chart for deploying a sample Node.js application
+version: 0.1.0

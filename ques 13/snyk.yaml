@@ -1,0 +1,36 @@
+trigger:
+  branches:
+    include:
+      - main
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  imageName: 'my-container-image'
+  dockerfilePath: 'Dockerfile'
+
+steps:
+- task: Docker@2
+  displayName: 'Build Docker Image'
+  inputs:
+    command: 'build'
+    containerRegistry: 'ACRConnection'
+    repository: '$(imageName)'
+    dockerfile: '$(dockerfilePath)'
+    tags: |
+      latest
+
+- script: |
+    echo "Scanning Docker image for vulnerabilities..."
+    snyk auth $(SNYK_TOKEN)
+    snyk container test $(imageName):latest
+  displayName: 'Scan Docker Image with Snyk'
+  env:
+    SNYK_TOKEN: $(SNYK_TOKEN)
+
+- task: PublishBuildArtifacts@1
+  inputs:
+    PathtoPublish: '$(Pipeline.Workspace)'
+    ArtifactName: 'drop'
+    publishLocation: 'Container'

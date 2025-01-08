@@ -1,0 +1,15 @@
+# Commands to package helm chart
+
+helm create sample-app
+
+cd sample-app
+
+helm package .
+
+az aks get-credentials --resource-group myResourceGroup --name myAKSCluster
+
+helm install sample-app ./sample-app-0.1.0.tgz --set replicaCount=5 --set image.tag=v1.0.0
+
+kubectl get pods
+
+helm history sample-app
